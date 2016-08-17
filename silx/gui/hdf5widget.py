@@ -575,14 +575,19 @@ class Hdf5TreeModel(qt.QStandardItemModel):
             if is_hdf5_file(filename):
                 fd = h5py.File(filename)
             else:
-                # assume Specfile
-                fd = spech5.SpecH5(filename)
+                try:
+                    from silx.io import fabioh5
+                    fd = fabioh5.File(filename)
+                except Exception as e:
+                    _logger.debug("File '%s' can't be read as fabio file.", filename, exc_info=True)
+                    # assume Specfile
+                    fd = spech5.SpecH5(filename)
 
             # add root level row with file name
             self.appendH5pyObject(fd)
         except IOError:
             _logger.debug("File '%s' can't be read.", filename, exc_info=True)
-            raise IOError("File '%s' can't be read as HDF5 or SpecFile" % filename)
+            raise IOError("File '%s' can't be read as HDF5, fabio, or SpecFile" % filename)
 
 
 class Hdf5HeaderView(qt.QHeaderView):
