@@ -36,6 +36,8 @@ import numpy
 import logging
 from . import qt
 from ..io import spech5
+from ..resources import resource_filename
+import weakref
 
 
 try:
@@ -51,6 +53,8 @@ __date__ = "23/08/2016"
 
 
 _logger = logging.getLogger(__name__)
+
+_cached_icons = weakref.WeakValueDictionary() 
 
 
 def is_hdf5_file(fname):
@@ -284,6 +288,10 @@ class Hdf5Item(MultiColumnTreeItem, LazyLoadableItem):
 
         self._setDefaultTooltip()
 
+        icon = self._createDefaultIcon()
+        if icon is not None:
+            self.setIcon(icon)
+
     def _getH5pyClass(self):
         if hasattr(self.obj, "h5py_class"):
             class_ = self.obj.h5py_class
@@ -344,6 +352,35 @@ class Hdf5Item(MultiColumnTreeItem, LazyLoadableItem):
         """Is the hdf5 obj contains sub group or datasets"""
         class_ = self._getH5pyClass()
         return issubclass(class_, (h5py.File, h5py.Group))
+
+    def _createDefaultIcon(self):
+        style = qt.QApplication.style()
+        class_ = self._getH5pyClass()
+        if issubclass(class_, h5py.File):
+            return style.standardIcon(qt.QStyle.SP_FileIcon)
+        elif issubclass(class_, h5py.Group):
+            return style.standardIcon(qt.QStyle.SP_DirIcon)
+        elif issubclass(class_, h5py.SoftLink):
+            return style.standardIcon(qt.QStyle.SP_DirLinkIcon)
+        elif issubclass(class_, h5py.ExternalLink):
+            return style.standardIcon(qt.QStyle.SP_FileLinkIcon)
+        elif issubclass(class_, h5py.Dataset):
+            if len(self.obj.shape) < 4:
+                name = "gui/icons/item-%ddim.svg" % len(self.obj.shape)
+            else:
+                name = "gui/icons/item-ndim.svg"
+            if str(self.obj.dtype) == "object":
+                name = "gui/icons/item-object.svg"
+
+            if name not in _cached_icons:
+                file_name = resource_filename(name)
+                icon = qt.QIcon(file_name)
+                _cached_icons[name] = icon
+            else:
+                icon = _cached_icons[name]
+
+            return icon
+        return None
 
     def _setDefaultTooltip(self):
         """Set the default tooltip"""
