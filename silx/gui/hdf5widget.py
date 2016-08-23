@@ -71,6 +71,48 @@ def is_hdf5_file(fname):
         return True
 
 
+class WeakMethod(object):
+    """ Wraps a function or, more importantly, a bound method, in
+    a way that allows a bound method's object to be GC'd, while
+    providing the same interface as a normal weak reference.
+
+    Based on work from http://code.activestate.com/recipes/81253/
+    """
+
+    def __init__(self, callable, callback=None):
+        """
+        Constructor
+
+        :param callable: Function/method to be called
+        :param callback:  If callback is provided and not None,
+            and the returned weakref object is still alive, the
+            callback will be called when the object is about to
+            be finalized; the weak reference object will be passed
+            as the only parameter to the callback; the referent will
+            no longer be available
+        """
+        import inspect
+
+        self.__callback = callback
+        weakref_callback = self.__call_callback if callback is not None else None
+
+        if inspect.ismethod(callable):
+            # it is a bound method
+            self.__obj = weakref.ref(callable.im_self, weakref_callback)
+            self.__method = callable.im_func
+        else:
+            self.__obj = None
+            self.__method = weakref.proxy(callable, weakref_callback)
+
+    def __call_callback(self, ref):
+        self.__callback(self)
+
+    def __call__(self, *args, **kargs):
+        if self.__obj is not None:
+            return self.__method(self.__obj, *args, **kargs)
+        else:
+            return self.__method(*args, **kargs)
+
 def htmlFromDict(input):
     """Generate a readable HTML from a dictionary
 
@@ -698,14 +740,75 @@ class Hdf5TreeView(qt.QTreeView):
 
     The default model is `Hdf5TreeModel` and the default header is
     `Hdf5HeaderView`.
+
+    Context menu is managed by the `setContextMenuPolicy` with the value
+    CustomContextMenu. This policy must not be changed, else context menus
+    will not work anymore. You can use `addContextMenuCallback` and
+    `removeContextMenuCallback` to add your custum actions according to the
+    selected objects.
     """
     def __init__(self, parent=None):
+        """
+        Constructor
+
+        :param parent qt.QWidget: The parent widget
+        """
         qt.QTreeView.__init__(self, parent)
         self.setModel(Hdf5TreeModel())
         self.setHeader(Hdf5HeaderView(qt.Qt.Horizontal, self))
         self.setSelectionBehavior(qt.QAbstractItemView.SelectRows)
         # optimise the rendering
         self.setUniformRowHeights(True)
+        self.__context_menu_callbacks = []
+        self.setContextMenuPolicy(qt.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._createContextMenu)
+
+    def __removeContextMenuProxies(self, ref):
+        """Callback to remove dead proxy from the list"""
+        self.__context_menu_callbacks.remove(ref)
+
+    def _createContextMenu(self, pos):
+        """
+        Create context menu.
+
+        :param pos qt.QPoint: Position of the context menu
+        """
+        selected_objects = self.selectedH5pyObjects(ignoreBrokenLinks=True)
+        actions = []
+
+        for callback in self.__context_menu_callbacks:
+            try:
+                new_actions = callback(self, selected_objects)
+                actions.extend(new_actions)
+            except KeyboardInterrupt:
+                raise
+            except:
+                # make sure no user callback crash the application
+                _logger.error("Error while calling callback", exc_info=True)
+                pass
+
+        if len(actions) > 0:
+            menu = qt.QMenu(self)
+            for action in actions:
+                menu.addAction(action)
+            menu.popup(self.viewport().mapToGlobal(pos))
+
+    def addContextMenuCallback(self, callback):
+        """Register a context menu callback.
+
+        The callback will be called when a context menu is requested with the
+        treeview and the list of selected h5py objects in parameters. The
+        callback must return a list of `qt.QAction` object.
+
+        Callbacks are stored as saferef. The object must store a reference by
+        itself.
+        """
+        callback = WeakMethod(callback, self.__removeContextMenuProxies)
+        self.__context_menu_callbacks.append(callback)
+
+    def removeContextMenuCallback(self, callback):
+        """Unregister a context menu callback"""
+        self.__context_menu_callbacks.remove(callback)
 
     def selectedH5pyObjects(self, ignoreBrokenLinks=True):
         """Returns selected h5py objects like `h5py.File`, `h5py.Group`,
