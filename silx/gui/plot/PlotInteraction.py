@@ -26,7 +26,7 @@
 
 __authors__ = ["T. Vincent"]
 __license__ = "MIT"
-__date__ = "15/09/2016"
+__date__ = "18/10/2016"
 
 
 import math
@@ -814,6 +814,108 @@ class SelectVLine(Select1Point):
         self.resetSelectionArea()
 
 
+class DrawFreeHand(Select):
+    """Interaction for drawing pencil. It display the preview of the pencil
+    before pressing the mouse.
+
+    TODO: The preview stay displayed when the mouse is not anymore over the
+        widget.
+    """
+    class Idle(State):
+        def onPress(self, x, y, btn):
+            if btn == LEFT_BTN:
+                self.goto('select', x, y)
+                return True
+
+        def enterState(self, x=None, y=None):
+            if x is not None:
+                self.machine.updatePencilShape(x, y)
+
+        def onMove(self, x, y):
+            self.machine.updatePencilShape(x, y)
+
+        def onLeave(self, x=None, y=None):
+            self.machine.cancel()
+
+    class Select(State):
+        def enterState(self, x, y):
+            self.machine.setFirstPoint(x, y)
+
+        def onMove(self, x, y):
+            self.machine.updatePencilShape(x, y)
+            self.machine.select(x, y)
+
+        def onRelease(self, x, y, btn):
+            self.machine.cancel()
+            if btn == LEFT_BTN:
+                self.machine.endSelect(x, y)
+                self.goto('idle', x, y)
+
+    def __init__(self, plot, parameters):
+        states = {
+            'idle': DrawFreeHand.Idle,
+            'select': DrawFreeHand.Select
+        }
+        super(DrawFreeHand, self).__init__(plot, parameters, states, 'idle')
+
+    @property
+    def width(self):
+        return self.parameters.get('width', None)
+
+    def setFirstPoint(self, x, y):
+        self._points = []
+        self.select(x, y)
+
+    def updatePencilShape(self, x, y):
+        center = self.plot.pixelToData(x, y, check=False)
+        assert center is not None
+        size = self.width * 0.5
+
+        polygon = []
+        pointCount = 13
+        for i in range(0, pointCount):
+            r = i * math.pi * 2.0 / pointCount
+            pos = (center[0] + size * math.cos(r), center[1] + size * math.sin(r))
+            polygon.append(pos)
+
+        self.setSelectionArea(polygon, fill='', color=self.color)
+
+    def select(self, x, y):
+        pos = self.plot.pixelToData(x, y, check=False)
+        if len(self._points) > 0:
+            if self._points[-1] == pos:
+                # Skip same points
+                return
+        self._points.append(pos)
+        eventDict = prepareDrawingSignal('drawingProgress',
+                                         'polylines',
+                                         self._points,
+                                         self.parameters)
+        self.plot.notify(**eventDict)
+        self._lastPos = pos
+
+    def endSelect(self, x, y):
+        pos = self.plot.pixelToData(x, y, check=False)
+        if len(self._points) > 0:
+            if self._points[-1] != pos:
+                # Append if different
+                self._points.append(pos)
+
+        eventDict = prepareDrawingSignal('drawingFinished',
+                                         'polylines',
+                                         self._points,
+                                         self.parameters)
+        self.plot.notify(**eventDict)
+        self.resetSelectionArea()
+        self._points = None
+
+    def cancelSelect(self):
+        self.resetSelectionArea()
+
+    def cancel(self):
+        self.resetSelectionArea()
+
+
 class SelectFreeLine(ClickOrDrag, _PlotInteraction):
     """Base class for drawing free lines with tools such as pencil."""
 
@@ -1211,6 +1313,7 @@ class PlotInteraction(object):
         'vline': SelectVLine,
         'hline': SelectHLine,
         'polylines': SelectFreeLine,
+        'pencil': DrawFreeHand,
     }
 
     def __init__(self, plot):
@@ -1245,7 +1348,7 @@ class PlotInteraction(object):
             return {'mode': 'select'}
 
     def setInteractiveMode(self, mode, color='black',
-                           shape='polygon', label=None):
+                           shape='polygon', label=None, width=None):
         """Switch the interactive mode.
 
         :param str mode: The name of the interactive mode.
@@ -1260,6 +1363,7 @@ class PlotInteraction(object):
                           'polylines'.
                           Default is 'polygon'.
         :param str label: Only for 'draw' mode.
+        :param float width: Width of the pencil. Only for draw pencil mode.
         """
         assert mode in ('draw', 'pan', 'select', 'zoom')
 
@@ -1275,7 +1379,8 @@ class PlotInteraction(object):
             parameters = {
                 'shape': shape,
                 'label': label,
-                'color': color
+                'color': color,
+                'width': width,
             }
 
             self._eventHandler.cancel()
