@@ -817,10 +817,8 @@ class SelectVLine(Select1Point):
 class DrawFreeHand(Select):
     """Interaction for drawing pencil. It display the preview of the pencil
     before pressing the mouse.
-
-    TODO: The preview stay displayed when the mouse is not anymore over the
-        widget.
     """
+
     class Idle(State):
         def onPress(self, x, y, btn):
             if btn == LEFT_BTN:
@@ -846,12 +844,18 @@ class DrawFreeHand(Select):
             self.machine.select(x, y)
 
         def onRelease(self, x, y, btn):
-            self.machine.cancel()
             if btn == LEFT_BTN:
+                self.machine.cancel()
                 self.machine.endSelect(x, y)
                 self.goto('idle', x, y)
 
     def __init__(self, plot, parameters):
+        # Circle used for pencil preview
+        angle = numpy.arange(13.) * numpy.pi * 2.0 / 13.
+        size = parameters.get('width', 1.) * 0.5
+        self._circle = size * numpy.array((numpy.cos(angle),
+                                           numpy.sin(angle))).T
+
         states = {
             'idle': DrawFreeHand.Idle,
             'select': DrawFreeHand.Select
@@ -869,14 +873,8 @@ class DrawFreeHand(Select):
     def updatePencilShape(self, x, y):
         center = self.plot.pixelToData(x, y, check=False)
         assert center is not None
-        size = self.width * 0.5
 
-        polygon = []
-        pointCount = 13
-        for i in range(0, pointCount):
-            r = i * math.pi * 2.0 / pointCount
-            pos = (center[0] + size * math.cos(r), center[1] + size * math.sin(r))
-            polygon.append(pos)
+        polygon = center + self._circle
 
         self.setSelectionArea(polygon, fill='', color=self.color)
 
@@ -892,7 +890,6 @@ class DrawFreeHand(Select):
                                          self._points,
                                          self.parameters)
         self.plot.notify(**eventDict)
-        self._lastPos = pos
 
     def endSelect(self, x, y):
         pos = self.plot.pixelToData(x, y, check=False)
