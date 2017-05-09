@@ -1,4 +1,3 @@
-# coding: utf-8
 # /*##########################################################################
 #
 # Copyright (c) 2015-2016 European Synchrotron Radiation Facility
@@ -23,40 +22,20 @@
 #
 # ###########################################################################*/
 
-__authors__ = ["T. Vincent"]
-__license__ = "MIT"
-__date__ = "09/05/2017"
+#ifdef _DEBUG
+#define SILX_DEBUG 1
+#else
+#define SILX_DEBUG 0
+#endif
 
-from numpy.distutils.misc_util import Configuration
+#ifdef NDEBUG
+#define SILX_NDEBUG 1
+#else
+#define SILX_NDEBUG 0
+#endif
 
-
-def configuration(parent_package='', top_path=None):
-    config = Configuration('silx', parent_package, top_path)
-    config.add_subpackage('gui')
-    config.add_subpackage('io')
-    config.add_subpackage('math')
-    config.add_subpackage('image')
-    config.add_subpackage('opencl')
-    config.add_subpackage('resources')
-    config.add_subpackage('sx')
-    config.add_subpackage('test')
-    config.add_subpackage('third_party')
-    config.add_subpackage('utils')
-    config.add_subpackage('app')
-
-    extensions_src = ['_extensions.pyx']
-    extra_link_args = ['-fopenmp']
-    extra_compile_args = ['-fopenmp']
-    config.add_extension('_extensions',
-                         sources=extensions_src,
-                         language='c++',
-                         extra_link_args=extra_link_args,
-                         extra_compile_args=extra_compile_args)
-
-    return config
-
-
-if __name__ == "__main__":
-    from numpy.distutils.core import setup
-
-    setup(configuration=configuration)
+#ifdef _OPENMP
+#define SILX_OPENMP 1
+#else
+#define SILX_OPENMP 0
+#endif

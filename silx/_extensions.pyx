@@ -1,7 +1,7 @@
 # coding: utf-8
 # /*##########################################################################
 #
-# Copyright (c) 2015-2016 European Synchrotron Radiation Facility
+# Copyright (c) 2015-2017 European Synchrotron Radiation Facility
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,41 +22,32 @@
 # THE SOFTWARE.
 #
 # ###########################################################################*/
+"""This module provides marching cubes implementation.
 
-__authors__ = ["T. Vincent"]
+It provides a :class:`MarchingCubes` class allowing to build an isosurface
+from data provided as a 3D data set or slice by slice.
+"""
+
+__authors__ = ["V. Valls"]
 __license__ = "MIT"
 __date__ = "09/05/2017"
 
-from numpy.distutils.misc_util import Configuration
+
+cimport cython
+
+cdef extern from "_extensions.hpp":
+    cdef bint SILX_OPENMP
+    cdef bint SILX_DEBUG
+    cdef bint SILX_NDEBUG
 
 
-def configuration(parent_package='', top_path=None):
-    config = Configuration('silx', parent_package, top_path)
-    config.add_subpackage('gui')
-    config.add_subpackage('io')
-    config.add_subpackage('math')
-    config.add_subpackage('image')
-    config.add_subpackage('opencl')
-    config.add_subpackage('resources')
-    config.add_subpackage('sx')
-    config.add_subpackage('test')
-    config.add_subpackage('third_party')
-    config.add_subpackage('utils')
-    config.add_subpackage('app')
-
-    extensions_src = ['_extensions.pyx']
-    extra_link_args = ['-fopenmp']
-    extra_compile_args = ['-fopenmp']
-    config.add_extension('_extensions',
-                         sources=extensions_src,
-                         language='c++',
-                         extra_link_args=extra_link_args,
-                         extra_compile_args=extra_compile_args)
-
-    return config
+def use_debug():
+    return bool(SILX_DEBUG)
 
 
-if __name__ == "__main__":
-    from numpy.distutils.core import setup
+def use_assert():
+    return not bool(SILX_NDEBUG)
 
-    setup(configuration=configuration)
+
+def use_openmp():
+    return bool(SILX_OPENMP)
