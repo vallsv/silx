@@ -32,7 +32,7 @@ from __future__ import absolute_import
 
 __authors__ = ["Vincent Favre-Nicolin", "T. Vincent"]
 __license__ = "MIT"
-__date__ = "12/09/2017"
+__date__ = "02/10/2017"
 
 
 import logging
@@ -391,7 +391,15 @@ class ComplexImageView(qt.QWidget):
         self._data = numpy.zeros((0, 0), dtype=numpy.complex)
         self._displayedData = numpy.zeros((0, 0), dtype=numpy.float)
 
-        self._plot2D = Plot2D(self)
+        extraPosition = [
+            ('Re', self._getRealValue),
+            ('Im', self._getImaginaryValue),
+            ('Phase', self._getPhaseValue),
+            ('Angle', self._getAngleValue),
+            ('Data', None),
+        ]
+
+        self._plot2D = Plot2D(self, extraPosition=extraPosition)
 
         layout = qt.QHBoxLayout(self)
         layout.setSpacing(0)
@@ -412,6 +420,58 @@ class ComplexImageView(qt.QWidget):
             _ComplexDataToolButton(parent=self, plot=self))
 
         self._plot2D.insertToolBar(self._plot2D.getProfileToolbar(), toolBar)
+
+    def _getImageData(self, x, y):
+        """Get value of the image at the given position (x, y)
+
+        :param float x: X position in plot coordinates
+        :param float y: Y position in plot coordinates
+        :return: The value at that point else None
+        """
+        value = None
+        valueZ = -float('inf')
+
+        for image in self._plot2D.getAllImages():
+            # TODO: It would be better to check for  ImageComplexData
+            if image is not self._plotImage:
+                continue
+            # TODO: It would be better to reach data from the image object
+            data = self._data
+            if image.getZValue() >= valueZ:
+                ox, oy = image.getOrigin()
+                sx, sy = image.getScale()
+                row, col = (y - oy) / sy, (x - ox) / sx
+                if row >= 0 and col >= 0:
+                    # Test positive before cast otherwise issue with int(-0.5) = 0
+                    row, col = int(row), int(col)
+                    if (row < data.shape[0] and col < data.shape[1]):
+                        value = data[row, col]
+                        valueZ = image.getZValue()
+        return value
+
+    def _getRealValue(self, x, y):
+        data = self._getImageData(x, y)
+        if data is None:
+            return "-"
+        return data.real
+
+    def _getImaginaryValue(self, x, y):
+        data = self._getImageData(x, y)
+        if data is None:
+            return "-"
+        return data.imag
+
+    def _getPhaseValue(self, x, y):
+        data = self._getImageData(x, y)
+        if data is None:
+            return "-"
+        return numpy.abs(data)
+
+    def _getAngleValue(self, x, y):
+        data = self._getImageData(x, y)
+        if data is None:
+            return "-"
+        return numpy.angle(data)
 
     def getPlot(self):
         """Return the PlotWidget displaying the data"""

@@ -29,7 +29,7 @@ The :class:`PlotWindow` is a subclass of :class:`.PlotWidget`.
 
 __authors__ = ["V.A. Sole", "T. Vincent"]
 __license__ = "MIT"
-__date__ = "17/08/2017"
+__date__ = "02/10/2017"
 
 import collections
 import logging
@@ -733,12 +733,17 @@ class Plot2D(PlotWindow):
     :type backend: str or :class:`BackendBase.BackendBase`
     """
 
-    def __init__(self, parent=None, backend=None):
+    def __init__(self, parent=None, backend=None, extraPosition=None):
         # List of information to display at the bottom of the plot
-        posInfo = [
+        posInfo = collections.OrderedDict([
             ('X', lambda x, y: x),
             ('Y', lambda x, y: y),
-            ('Data', self._getImageValue)]
+            ('Data', self._getImageValue)])
+
+        if extraPosition is not None:
+            extraPosition = collections.OrderedDict(extraPosition)
+            posInfo.update(extraPosition)
+            posInfo = list(posInfo.items())
 
         super(Plot2D, self).__init__(parent=parent, backend=backend,
                                      resetzoom=True, autoScale=False,

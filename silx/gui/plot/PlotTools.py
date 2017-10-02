@@ -29,7 +29,7 @@ from __future__ import division
 
 __authors__ = ["V.A. Sole", "T. Vincent"]
 __license__ = "MIT"
-__date__ = "27/06/2017"
+__date__ = "02/10/2017"
 
 
 import logging
@@ -118,6 +118,8 @@ class PositionInfo(qt.QWidget):
 
         # Create all QLabel and store them with the corresponding converter
         for name, func in converters:
+            if func is None:
+                continue
             layout.addWidget(qt.QLabel('<b>' + name + ':</b>'))
 
             contentWidget = qt.QLabel()
