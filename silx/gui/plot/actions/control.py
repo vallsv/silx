@@ -50,11 +50,10 @@ from __future__ import division
 
 __authors__ = ["V.A. Sole", "T. Vincent", "P. Knobel"]
 __license__ = "MIT"
-__date__ = "27/06/2017"
+__date__ = "03/01/2018"
 
 from . import PlotAction
 import logging
-import numpy
 from silx.gui.plot import items
 from silx.gui.plot.ColormapDialog import ColormapDialog
 from silx.gui.plot._utils import applyZoomToPlot as _applyZoomToPlot
