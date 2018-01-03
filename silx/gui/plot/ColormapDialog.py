@@ -63,7 +63,7 @@ from __future__ import division
 
 __authors__ = ["V.A. Sole", "T. Vincent", "H. Payno"]
 __license__ = "MIT"
-__date__ = "15/12/2017"
+__date__ = "03/01/2018"
 
 
 import logging
@@ -148,6 +148,9 @@ class ColormapDialog(qt.QDialog):
     :param parent: See :class:`QDialog`
     :param str title: The QDialog title
     """
+
+    visibleChanged = qt.Signal(bool)
+    """This event is sent when the dialog visibility change"""
 
     def __init__(self, parent=None, title="Colormap Dialog"):
         qt.QDialog.__init__(self, parent)
@@ -242,6 +245,14 @@ class ColormapDialog(qt.QDialog):
                          vmin=None, vmax=None))
 
         self.setModal(self.isModal())
+
+    def showEvent(self, event):
+        self.visibleChanged.emit(True)
+        super(ColormapDialog, self).showEvent(event)
+
+    def hideEvent(self, event):
+        self.visibleChanged.emit(False)
+        super(ColormapDialog, self).hideEvent(event)
 
     def close(self):
         self.accept()
