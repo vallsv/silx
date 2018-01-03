@@ -29,7 +29,7 @@ The :class:`PlotWindow` is a subclass of :class:`.PlotWidget`.
 
 __authors__ = ["V.A. Sole", "T. Vincent"]
 __license__ = "MIT"
-__date__ = "22/11/2017"
+__date__ = "03/01/2018"
 
 import collections
 import logging
@@ -614,6 +614,21 @@ class PlotWindow(PlotWidget):
         :rtype: actions.PlotAction
         """
         return self.colormapAction
+
+    def setColormapAction(self, colormapAction):
+        """Set the action which open a colormap dialog to change active image
+        and default colormap.
+
+        :param actions.PlotAction colormapAction: The new colormap action
+        """
+        assert(colormapAction is not None)
+        toolBar = self.toolBar()
+        if self.colormapAction is not None:
+            toolBar.insertAction(self.colormapAction, colormapAction)
+            toolBar.removeAction(self.colormapAction)
+        else:
+            toolBar.addAction(colormapAction)
+        self.colormapAction = colormapAction
 
     def getKeepDataAspectRatioButton(self):
         """Button to toggle aspect ratio preservation

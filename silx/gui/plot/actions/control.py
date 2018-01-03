@@ -317,24 +317,28 @@ class ColormapAction(PlotAction):
 
     Both the active image colormap and the default colormap are updated.
 
-    :param plot: :class:`.PlotWidget` instance on which to operate
+    :param colormap: :class:`.Colormap` instance on which to operate
+    :param plot: :class:`.PlotWidget` instance on which to operate (if no
+            colormap specified)
     :param parent: See :class:`QAction`
     """
-    def __init__(self, plot, parent=None):
+    def __init__(self, plot, parent=None, colormap=None):
         self._dialog = None  # To store an instance of ColormapDialog
         super(ColormapAction, self).__init__(
             plot, icon='colormap', text='Colormap',
             tooltip="Change colormap",
             triggered=self._actionTriggered,
             checkable=True, parent=parent)
+        self.setColormap(colormap)
+        if self.plot is not None:
+            self.plot.sigActiveImageChanged.connect(self._activeImageChanged)
 
-    def setColorDialog(self, colorDialog):
-        """Set a specific color dialog instead of using the default dialog."""
-        assert(colorDialog is not None)
-        assert(self._dialog is None)
-        self._dialog = colorDialog
-        self._dialog.visibleChanged.connect(self._dialogVisibleChanged)
-        self.setChecked(self._dialog.isVisible())
+    def setColormap(self, colormap):
+        """Set a specific colormap to edit.
+
+        If not none, the color dialog will not be edited using the colormap of
+        the active image."""
+        self._colormap = colormap
 
     @staticmethod
     def _createDialog(parent):
@@ -350,9 +354,12 @@ class ColormapAction(PlotAction):
     def _actionTriggered(self, checked=False):
         """Create a cmap dialog and update active image and default cmap."""
         if self._dialog is None:
-            self._dialog = self._createDialog(self.plot)
+            if self.plot is None:
+                parent = self.parentWidget()
+            else:
+                parent = self.plot
+            self._dialog = self._createDialog(parent=parent)
             self._dialog.visibleChanged.connect(self._dialogVisibleChanged)
-            self.plot.sigActiveImageChanged.connect(self._updateColormap)
 
         # Run the dialog listening to colormap change
         if checked is True:
@@ -364,20 +371,29 @@ class ColormapAction(PlotAction):
     def _dialogVisibleChanged(self, isVisible):
         self.setChecked(isVisible)
 
+    def _activeImageChanged(self):
+        if self._colormap is None:
+            self._updateColormap()
+
     def _updateColormap(self):
-        image = self.plot.getActiveImage()
-        if isinstance(image, items.ColormapMixIn):
-            # Set dialog from active image
-            colormap = image.getColormap()
-            data = image.getData(copy=False)
-            # Set histogram and range if any
-            self._dialog.setData(data)
-        else:
-            # No active image or active image is RGBA,
-            # set dialog from default info
-            colormap = self.plot.getDefaultColormap()
-            # Reset histogram and range if any
-            self._dialog.setData(None)
+        if self._dialog is None:
+            return
+        if self._colormap is not None:
+            colormap = self._colormap
+	else:
+            image = self.plot.getActiveImage()
+            if isinstance(image, items.ColormapMixIn):
+                # Set dialog from active image
+                colormap = image.getColormap()
+                data = image.getData(copy=False)
+                # Set histogram and range if any
+                self._dialog.setData(data)
+            else:
+                # No active image or active image is RGBA,
+                # set dialog from default info
+                colormap = self.plot.getDefaultColormap()
+                # Reset histogram and range if any
+                self._dialog.setData(None)
 
         # avoid setting multiple time the same colormap to be able to reset it
         if colormap is not self._dialog.getColormap():

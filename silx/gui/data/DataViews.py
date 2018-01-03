@@ -177,8 +177,8 @@ class DataView(object):
     _defaultColormap = None
     """Store a default colormap shared with all the views"""
 
-    _defaultColorDialog = None
-    """Store a default color dialog shared with all the views"""
+    _defaultColormapAction = None
+    """Store a default map action shared with all the views"""
 
     def __init__(self, parent, modeId=None, icon=None, label=None):
         """Constructor
@@ -206,14 +206,14 @@ class DataView(object):
         return DataView._defaultColormap
 
     @staticmethod
-    def defaultColorDialog():
-        """Returns a shared color dialog as default for all the views.
+    def defaultColormapAction():
+        """Returns a shared colormap action as default for all the views.
 
-        :rtype: ColorDialog
+        :rtype: ColormapAction
         """
-        if DataView._defaultColorDialog is None:
-            DataView._defaultColorDialog = ColormapAction._createDialog(qt.QApplication.instance().activeWindow())
-        return DataView._defaultColorDialog
+        if DataView._defaultColormapAction is None:
+            DataView._defaultColormapAction = ColormapAction(plot=None, parent=qt.QApplication.instance().activeWindow(), colormap=DataView.defaultColormap())
+        return DataView._defaultColormapAction
 
     def icon(self):
         """Returns the default icon"""
@@ -486,7 +486,7 @@ class _Plot2dView(DataView):
         from silx.gui import plot
         widget = plot.Plot2D(parent=parent)
         widget.setDefaultColormap(self.defaultColormap())
-        widget.getColormapAction().setColorDialog(self.defaultColorDialog())
+        widget.setColormapAction(self.defaultColormapAction())
         widget.getIntensityHistogramAction().setVisible(True)
         widget.setKeepDataAspectRatio(True)
         widget.getXAxis().setLabel('X')
@@ -620,7 +620,7 @@ class _ComplexImageView(DataView):
         from silx.gui.plot.ComplexImageView import ComplexImageView
         widget = ComplexImageView(parent=parent)
         widget.setColormap(self.defaultColormap())
-        widget.getPlot().getColormapAction().setColorDialog(self.defaultColorDialog())
+        widget.getPlot().setColormapAction(self.defaultColormapAction())
         widget.getPlot().getIntensityHistogramAction().setVisible(True)
         widget.getPlot().setKeepDataAspectRatio(True)
         widget.getXAxis().setLabel('X')
@@ -714,7 +714,7 @@ class _StackView(DataView):
         from silx.gui import plot
         widget = plot.StackView(parent=parent)
         widget.setColormap(self.defaultColormap())
-        widget.getPlot().getColormapAction().setColorDialog(self.defaultColorDialog())
+        widget.getPlot().setColormapAction(self.defaultColormapAction())
         widget.setKeepDataAspectRatio(True)
         widget.setLabels(self.axesNames(None, None))
         # hide default option panel
@@ -1080,7 +1080,7 @@ class _NXdataImageView(DataView):
         from silx.gui.data.NXdataWidgets import ArrayImagePlot
         widget = ArrayImagePlot(parent)
         widget.getPlot().setDefaultColormap(self.defaultColormap())
-        widget.getPlot().getColormapAction().setColorDialog(self.defaultColorDialog())
+        widget.getPlot().setColormapAction(self.defaultColormapAction())
         return widget
 
     def axesNames(self, data, info):
@@ -1123,7 +1123,7 @@ class _NXdataStackView(DataView):
         from silx.gui.data.NXdataWidgets import ArrayStackPlot
         widget = ArrayStackPlot(parent)
         widget.getStackView().setColormap(self.defaultColormap())
-        widget.getStackView().getPlot().getColormapAction().setColorDialog(self.defaultColorDialog())
+        widget.getStackView().getPlot().setColormapAction(self.defaultColormapAction())
         return widget
 
     def axesNames(self, data, info):

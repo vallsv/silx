@@ -55,8 +55,10 @@ class PlotAction(qt.QAction):
 
     def __init__(self, plot, icon, text, tooltip=None,
                  triggered=None, checkable=False, parent=None):
-        assert plot is not None
-        self._plotRef = weakref.ref(plot)
+        if plot is None:
+            self._plotRef = None
+        else:
+            self._plotRef = weakref.ref(plot)
 
         if not isinstance(icon, qt.QIcon):
             # Try with icon as a string and load corresponding icon
@@ -75,4 +77,6 @@ class PlotAction(qt.QAction):
     @property
     def plot(self):
         """The :class:`.PlotWidget` this action group is controlling."""
+        if self._plotRef is None:
+            return None
         return self._plotRef()
