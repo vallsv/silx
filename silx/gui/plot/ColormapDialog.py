@@ -425,9 +425,10 @@ class ColormapDialog(qt.QDialog):
             self._plot.addHistogram(norm_hist,
                                     bin_edges,
                                     legend="Histogram",
-                                    color='gray',
+                                    color='red',
                                     align='center',
                                     fill=True)
+            self._plot.getHistogram("Histogram").setAlpha(0.5)
 
             # Update the data range
             colormap = self.getColormap()
@@ -478,6 +479,8 @@ class ColormapDialog(qt.QDialog):
                                     color='gray',
                                     align='center',
                                     fill=True)
+            self._plot.getHistogram("Range").setAlpha(0.5)
+
             self._dataRange = minimum, positiveMin, maximum
         self._updateMinMaxData()
 
