@@ -50,7 +50,7 @@ from __future__ import division
 
 __authors__ = ["V.A. Sole", "T. Vincent", "P. Knobel"]
 __license__ = "MIT"
-__date__ = "05/01/2018"
+__date__ = "08/01/2018"
 
 from . import PlotAction
 import logging
@@ -372,28 +372,27 @@ class ColormapAction(PlotAction):
         self.setChecked(isVisible)
 
     def _activeImageChanged(self):
-        if self._colormap is None:
-            self._updateColormap()
+        self._updateColormap()
 
     def _updateColormap(self):
         if self._dialog is None:
             return
+        image = self.plot.getActiveImage()
+        if isinstance(image, items.ColormapMixIn):
+            # Set dialog from active image
+            colormap = image.getColormap()
+            data = image.getData(copy=False)
+            # Set histogram and range if any
+            self._dialog.setData(data)
+        else:
+            # No active image or active image is RGBA,
+            # set dialog from default info
+            colormap = self.plot.getDefaultColormap()
+            # Reset histogram and range if any
+            self._dialog.setData(None)
+
         if self._colormap is not None:
             colormap = self._colormap
-	else:
-            image = self.plot.getActiveImage()
-            if isinstance(image, items.ColormapMixIn):
-                # Set dialog from active image
-                colormap = image.getColormap()
-                data = image.getData(copy=False)
-                # Set histogram and range if any
-                self._dialog.setData(data)
-            else:
-                # No active image or active image is RGBA,
-                # set dialog from default info
-                colormap = self.plot.getDefaultColormap()
-                # Reset histogram and range if any
-                self._dialog.setData(None)
 
         self._dialog.setColormap(colormap)
 
