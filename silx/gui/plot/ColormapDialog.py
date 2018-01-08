@@ -782,6 +782,8 @@ class ColormapDialog(qt.QDialog):
             return
 
         oldColormap = self.getColormap()
+        if oldColormap is colormap:
+            return
         if oldColormap is not None:
             oldColormap.sigChanged.disconnect(self._applyColormap)
         self._colormap = weakref.ref(colormap)
