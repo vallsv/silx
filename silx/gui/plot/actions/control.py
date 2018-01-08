@@ -374,27 +374,30 @@ class ColormapAction(PlotAction):
     def _activeImageChanged(self):
         self._updateColormap()
 
+    def _getColormapAndData(self):
+        data = None
+        if self.plot is not None:
+            image = self.plot.getActiveImage()
+            if isinstance(image, items.ColormapMixIn):
+                # Set dialog from active image
+                colormap = image.getColormap()
+                data = image.getData(copy=False)
+            else:
+                # No active image or active image is RGBA,
+                # set dialog from default info
+                colormap = self.plot.getDefaultColormap()
+                # Reset histogram and range if any
+                data = None
+        if self._colormap is not None:
+            colormap = self._colormap
+        return colormap, data
+
     def _updateColormap(self):
         if self._dialog is None:
             return
-        image = self.plot.getActiveImage()
-        if isinstance(image, items.ColormapMixIn):
-            # Set dialog from active image
-            colormap = image.getColormap()
-            data = image.getData(copy=False)
-            # Set histogram and range if any
-            self._dialog.setData(data)
-        else:
-            # No active image or active image is RGBA,
-            # set dialog from default info
-            colormap = self.plot.getDefaultColormap()
-            # Reset histogram and range if any
-            self._dialog.setData(None)
-
-        if self._colormap is not None:
-            colormap = self._colormap
-
+        colormap, data = self._getColormapAndData()
         self._dialog.setColormap(colormap)
+        self._dialog.setData(data)
 
 
 class KeepAspectRatioAction(PlotAction):
