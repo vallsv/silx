@@ -28,7 +28,7 @@ from __future__ import division
 
 __authors__ = ["V.A. Sole", "T. Vincent, H. Payno"]
 __license__ = "MIT"
-__date__ = "18/10/2017"
+__date__ = "29/01/2018"
 
 
 import logging
@@ -377,6 +377,8 @@ class BackendMatplotlib(BackendBase.BackendBase):
         xView = numpy.array(x, copy=False)
         yView = numpy.array(y, copy=False)
 
+        item2 = None
+
         if shape == "line":
             item = self.ax.plot(x, y, label=legend, color=color,
                                 linestyle='-', marker=None)[0]
@@ -398,22 +400,32 @@ class BackendMatplotlib(BackendBase.BackendBase):
             yMax = numpy.nanmax(yView)
             w = xMax - xMin
             h = yMax - yMin
+
+            print("mpl rectangle")
             item = Rectangle(xy=(xMin, yMin),
-                             width=w,
-                             height=h,
-                             fill=False,
-                             color=color)
+                              width=w,
+                              height=h,
+                              fill=False,
+                              color="black")
             if fill:
                 item.set_hatch('.')
 
             self.ax.add_patch(item)
 
         elif shape in ('polygon', 'polylines'):
+            print("mpl polygon")
+
             points = numpy.array((xView, yView)).T
             if shape == 'polygon':
                 closed = True
             else:  # shape == 'polylines'
                 closed = numpy.all(numpy.equal(points[0], points[-1]))
+            item2 = Polygon(points,
+                            closed=closed,
+                            fill=False,
+                            label=legend,
+                            color="black",
+                            linewidth=2)
             item = Polygon(points,
                            closed=closed,
                            fill=False,
@@ -421,17 +433,25 @@ class BackendMatplotlib(BackendBase.BackendBase):
                            color=color)
             if fill and shape == 'polygon':
                 item.set_hatch('/')
+                item2.set_hatch('/')
 
+            self.ax.add_patch(item2)
             self.ax.add_patch(item)
 
         else:
             raise NotImplementedError("Unsupported item shape %s" % shape)
 
         item.set_zorder(z)
-
         if overlay:
             item.set_animated(True)
             self._overlays.add(item)
+
+        if item2 is not None:
+            item2.set_zorder(z + 1)
+            if overlay:
+                item2.set_animated(True)
+                self._overlays.add(item2)
+            return [item, item2]
 
         return item
 
@@ -512,11 +532,17 @@ class BackendMatplotlib(BackendBase.BackendBase):
 
     def remove(self, item):
         # Warning: It also needs to remove extra stuff if added as for markers
-        self._overlays.discard(item)
-        try:
-            item.remove()
-        except ValueError:
-            pass  # Already removed e.g., in set[X|Y]AxisLogarithmic
+        if isinstance(item, list):
+            items = item
+        else:
+            items = [item]
+
+        for item in items:
+            self._overlays.discard(item)
+            try:
+                item.remove()
+            except ValueError:
+                pass  # Already removed e.g., in set[X|Y]AxisLogarithmic
 
     # Interaction methods
 
