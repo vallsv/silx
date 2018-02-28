@@ -28,7 +28,7 @@ This module contains an :class:`AbstractDataFileDialog`.
 
 __authors__ = ["V. Valls"]
 __license__ = "MIT"
-__date__ = "12/02/2018"
+__date__ = "28/02/2018"
 
 
 import sys
@@ -145,19 +145,30 @@ class _SideBar(qt.QListView):
         urls = []
         if qt.qVersion().startswith("5.") and sys.platform in ["linux", "linux2"]:
             # Avoid segfault on PyQt5 + gtk
-            _logger.debug("Skip default sidebar URLs (avoid PyQt5 segfault)")
-            pass
+            try:
+                import distutils.version
+                version = distutils.version.LooseVersion(qt.qVersion())
+                can_be_used = version >= distutils.version.LooseVersion("5.10.1")
+            except ImportError:
+                can_be_used = False
+            if not can_be_used:
+                _logger.debug("Skip default sidebar URLs (avoid PyQt5 segfault)")
         elif qt.qVersion().startswith("4.") and sys.platform in ["win32"]:
             # Avoid 5min of locked GUI relative to network driver
             _logger.debug("Skip default sidebar URLs (avoid lock when using network drivers)")
+            can_be_used = False
         else:
+            can_be_used = True
+
+        if can_be_used:
             # Get default shortcut
             # There is no other way
             d = qt.QFileDialog(self)
             # Needed to be able to reach the sidebar urls
             d.setOption(qt.QFileDialog.DontUseNativeDialog, True)
+            d.setAttribute(qt.Qt.WA_DeleteOnClose, True)
             urls = d.sidebarUrls()
-            d.deleteLater()
+            d.close()
             d = None
 
         if len(urls) == 0:
