@@ -24,7 +24,7 @@
 
 __authors__ = ["D. Naudet"]
 __license__ = "MIT"
-__date__ = "27/03/2017"
+__date__ = "16/03/2018"
 
 import os.path
 
@@ -68,6 +68,22 @@ def configuration(parent_package='', top_path=None):
                          sources=mc_src,
                          include_dirs=['marchingcubes', numpy.get_include()],
                          language='c++')
+
+    # =====================================
+    # marching squares
+    # =====================================
+    config.add_extension('marchingsquares',
+                         sources=['marchingsquares.pyx'],
+                         include_dirs=[numpy.get_include()],
+                         language='c++',
+                         extra_compile_args=["-std=c++11"],
+                         extra_link_args=["-std=c++11"])
+    config.add_extension('marchingsquares_mp',
+                         sources=['marchingsquares_mp.pyx'],
+                         include_dirs=[numpy.get_include()],
+                         language='c++',
+                         extra_compile_args=["-std=c++11", "-fopenmp"],
+                         extra_link_args=["-std=c++11", "-fopenmp"])
 
     # min/max
     config.add_extension('combo',
