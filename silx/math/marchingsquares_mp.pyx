@@ -1,4 +1,3 @@
-
 import numpy
 cimport numpy as cnumpy
 
@@ -111,8 +110,7 @@ cdef class MarchingSquareCythonInsertOpenMp(object):
             int dim_x, dim_y
             int kernel_size
 
-        print("inits kernels")
-        kernel_size = 128
+        kernel_size = 256
         for y in range(0, self._dim_y - 1, kernel_size):
             for x in range(0, self._dim_x - 1, kernel_size):
                 context = new TileContext_t()
@@ -132,12 +130,10 @@ cdef class MarchingSquareCythonInsertOpenMp(object):
                 contexts.push_back(context)
 
         # openmp
-        print("starts openmp")
         for i in prange(contexts.size(), nogil=True):
             self._marching_squares_mp(contexts[i], isovalue)
 
         # merge
-        print("merge result")
         context = contexts[0]
         for i in range(1, contexts.size()):
             self._merge_context(context, contexts[i])
@@ -151,14 +147,19 @@ cdef class MarchingSquareCythonInsertOpenMp(object):
         cdef:
             int x, y, index
             cnumpy.float64_t tmpf
-            cnumpy.float32_t *_image_ptr = self._image_ptr
-            cnumpy.int8_t *_mask_ptr = self._mask_ptr
+            cnumpy.float32_t *_image_ptr
+            cnumpy.int8_t *_mask_ptr
             vector[TileContext_t*] contexts
             int dim_x, dim_y
 
-        for y in range(context.pos_y, context.pos_y + context.dim_y - 1):
-            for x in range(context.pos_x, context.pos_x + context.dim_x - 1):
+        _image_ptr = self._image_ptr + (context.pos_y * self._dim_x + context.pos_x)
+        if self._mask_ptr != NULL:
+            _mask_ptr = self._mask_ptr + (context.pos_y * self._dim_x + context.pos_x)
+        else:
+            _mask_ptr = NULL
 
+        for y in range(context.pos_y, context.pos_y + context.dim_y):
+            for x in range(context.pos_x, context.pos_x + context.dim_x):
                 # Calculate index.
                 index = 0
                 if _image_ptr[0] > isovalue:
@@ -363,6 +364,7 @@ cdef class MarchingSquareCythonInsertOpenMp(object):
             polygon_description_t *description_other
             polygon_description_t *description
             hash_index_t vhash
+            vector[polygon_description_t*] delete_later
 
         # merge final polygons
         context.final_polygons.splice(context.final_polygons.end(), other.final_polygons)
@@ -370,19 +372,22 @@ cdef class MarchingSquareCythonInsertOpenMp(object):
         it_other = other.polygons.begin()
         while it_other != other.polygons.end():
             vhash = dereference(it_other).first
+
             # merge polygons
             description_other = dereference(it_other).second
+
+            if description_other.begin == 0 or description_other.end == 0:
+                preincrement(it_other)
+                continue
 
             it = context.polygons.find(vhash)
             if it != context.polygons.end():
                 # We have to merge polygons
                 # FIXME it have to be done well
+                description = dereference(it).second
                 context.polygons.erase(description.begin)
                 context.polygons.erase(description.end)
-                other.polygons.erase(description.begin)
-                other.polygons.erase(description.end)
                 # FIXME we have to manage polygon which became closed
-                description = dereference(it).second
                 if description.end != vhash:
                     description.begin = description.end
                     description.points.reverse()
@@ -396,16 +401,25 @@ cdef class MarchingSquareCythonInsertOpenMp(object):
                 description.points.splice(description.points.end(), description_other.points)
                 context.polygons[description.begin] = description
                 context.polygons[description.end] = description
-                del description_other
+                delete_later.push_back(description_other)
+                description_other.begin = 0
+                description_other.end = 0
 
-            preincrement(it)
+            preincrement(it_other)
 
         # Feed other with all unused polygons
         # FIXME: There is maybe a function for that
         it_other = other.polygons.begin()
         while it_other != other.polygons.end():
-            other.polygons[dereference(it_other).first] = dereference(it_other).second
-            preincrement(it)
+            description_other = dereference(it_other).second
+            if description_other.begin == 0 or description_other.end == 0:
+                preincrement(it_other)
+                continue
+            context.polygons[dereference(it_other).first] = dereference(it_other).second
+            preincrement(it_other)
+
+        for i in range(delete_later.size()):
+            del delete_later[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -489,7 +503,6 @@ cdef class MarchingSquareCythonInsertOpenMp(object):
     @cython.wraparound(False)
     @cython.cdivision(True)
     def iso_contour(self, value=None):
-        print("iso_contour")
         self._marching_squares(value)
         polygons = self._extract_polygons()
         return polygons
