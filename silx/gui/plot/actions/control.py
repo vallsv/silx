@@ -591,3 +591,4 @@ class ShowAxisAction(PlotAction):
 
     def _actionTriggered(self, checked=False):
         self.plot.setAxesDisplayed(checked)
+
