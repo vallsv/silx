@@ -29,7 +29,7 @@ from __future__ import absolute_import
 
 __authors__ = ["T. Vincent", "H.Payno"]
 __license__ = "MIT"
-__date__ = "09/11/2018"
+__date__ = "13/11/2018"
 
 import numpy
 import logging
@@ -100,6 +100,10 @@ _AVAILABLE_LUTS = collections.OrderedDict([
     ('inferno', _LUT_DESCRIPTION('resource', 'green', True)),
     ('plasma', _LUT_DESCRIPTION('resource', 'green', True)),
     ('hsv', _LUT_DESCRIPTION('matplotlib', 'black', True)),
+    ('cmocean_phase', _LUT_DESCRIPTION('resource', 'black', True)),
+    ('colorcet_colorwheel', _LUT_DESCRIPTION('resource', 'black', True)),
+    ('twilight', _LUT_DESCRIPTION('resource', 'pink', True)),
+    ('twilight_shifted', _LUT_DESCRIPTION('resource', 'pink', True)),
 ])
 """Description for internal porpose of all the default LUT provided by the library."""
 
