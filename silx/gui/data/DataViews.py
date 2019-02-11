@@ -101,6 +101,7 @@ class DataInfo(object):
 
     def __init__(self, data):
         data = self.normalizeData(data)
+        self.isMultiData = False
         self.isArray = False
         self.interpretation = None
         self.isNumeric = False
@@ -113,8 +114,11 @@ class DataInfo(object):
         self.shape = tuple()
         self.dim = 0
         self.size = 0
+        self.infos = None
 
-        if data is None:
+        if isinstance(data, (list, tuple)):
+            self.isMultiData = True
+            self.infos = [DataInfo(d) for d in data]
             return
 
         if silx.io.is_group(data):
