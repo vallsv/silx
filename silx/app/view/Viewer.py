@@ -71,6 +71,7 @@ class Viewer(qt.QMainWindow):
         self.__dialogState = None
         self.__customNxDataItem = None
         self.__treeview = silx.gui.hdf5.Hdf5TreeView(self)
+        self.__treeview.setSelectionMode(qt.QAbstractItemView.ExtendedSelection)
         self.__treeview.setExpandsOnDoubleClick(False)
         """Silx HDF5 TreeView"""
 
@@ -810,6 +811,7 @@ class Viewer(qt.QMainWindow):
             containing expected information to populate the context menu
         """
         selectedObjects = event.source().selectedH5Nodes(ignoreBrokenLinks=False)
+        selectedObjects = list(selectedObjects)
         menu = event.menu()
 
         if not menu.isEmpty():
