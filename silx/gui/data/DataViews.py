@@ -1061,6 +1061,53 @@ class _ImageView(CompositeDataView):
         self.addView(_Plot2dView(parent))
 
 
+class _CompareImageView(DataView):
+    """View displaying data using a 2d plot"""
+
+    def __init__(self, parent):
+        super(_CompareImageView, self).__init__(
+            parent=parent,
+            label="Compare image",
+            icon=icons.getQIcon("view-2d"))
+
+    def createWidget(self, parent):
+        from silx.gui.plot.CompareImages import CompareImages
+        widget = CompareImages(parent=parent)
+        # widget.getPlot().setDefaultColormap(self.defaultColormap())
+        # widget.getPlot().getColormapAction().setColorDialog(self.defaultColorDialog())
+        return widget
+
+    def clear(self):
+        self.getWidget().setData(None, None)
+
+    def normalizeData(self, data):
+        data = DataView.normalizeData(self, data)
+        data = _normalizeComplex(data)
+        return data
+
+    def setData(self, data):
+        image1 = self.normalizeData(data[0])
+        image2 = self.normalizeData(data[1])
+        self.getWidget().setData(image1, image2)
+
+    def axesNames(self, data, info):
+        return None
+
+    def getDataPriority(self, data, info):
+        if data is None:
+            return DataView.UNSUPPORTED
+        if not info.isMultiData:
+            return DataView.UNSUPPORTED
+        if len(info.infos) != 2:
+            return DataView.UNSUPPORTED
+        for i in info.infos:
+            if not i.isArray or not (i.isNumeric or i.isBoolean):
+                return DataView.UNSUPPORTED
+            if i.dim != 2:
+                return DataView.UNSUPPORTED
+        return 1000
+
+
 class _InvalidNXdataView(DataView):
     """DataView showing a simple label with an error message
     to inform that a group with @NX_class=NXdata cannot be
