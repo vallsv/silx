@@ -847,3 +847,11 @@ class Viewer(qt.QMainWindow):
                 action = qt.QAction("Synchronize %s" % obj.local_filename, event.source())
                 action.triggered.connect(lambda: self.__synchronizeH5pyObject(h5))
                 menu.addAction(action)
+
+        if len(selectedObjects) == 2:
+            # TODO: More checks are expected
+            image1 = selectedObjects[0].h5py_object
+            image2 = selectedObjects[1].h5py_object
+            action = qt.QAction("Compare this images", event.source())
+            action.triggered.connect(lambda: self.displayData((image1, image2)))
+            menu.addAction(action)
