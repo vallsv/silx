@@ -149,6 +149,7 @@ class DataViewer(qt.QFrame):
             DataViews._Plot3dView,
             DataViews._RawView,
             DataViews._StackView,
+            DataViews._CompareImageView,
         ]
         views = []
         for viewClass in viewClasses:
