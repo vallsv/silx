@@ -35,7 +35,6 @@ from silx.gui import colors
 
 from silx.gui.plot import items
 from silx.gui.plot.items import roi as roi_items
-from silx.gui.plot.Profile import createProfile
 from . import core
 
 
@@ -123,7 +122,7 @@ class _DefaultImageProfileRoiMixIn(core.ProfileRoiMixIn):
 
         origin = item.getOrigin()
         scale = item.getScale()
-        _coords, _profile, area, _profileName, _xLabel = createProfile(
+        _coords, _profile, area, _profileName, _xLabel = core.createProfile(
             roiInfo=self._getRoiInfo(),
             currentData=currentData,
             origin=origin,
@@ -164,7 +163,7 @@ class _DefaultImageProfileRoiMixIn(core.ProfileRoiMixIn):
         method = self.getProfileMethod()
 
         def createProfile2(currentData):
-            coords, profile, _area, profileName, xLabel = createProfile(
+            coords, profile, _area, profileName, xLabel = core.createProfile(
                 roiInfo=self._getRoiInfo(),
                 currentData=currentData,
                 origin=origin,
@@ -191,7 +190,7 @@ class _DefaultImageProfileRoiMixIn(core.ProfileRoiMixIn):
             _coords, g, _profileName, _xLabel = createProfile2(rgba[..., 1])
             _coords, b, _profileName, _xLabel = createProfile2(rgba[..., 2])
             if rgba.shape[-1] == 4:
-                _coords, a, _profileName, _xLabel = createProfile(rgba[..., 3])
+                _coords, a, _profileName, _xLabel = createProfile2(rgba[..., 3])
             else:
                 a = [None]
             data = core.RgbaProfileData(
@@ -867,7 +866,7 @@ class _DefaultImageStackProfileRoiMixIn:
         assert kind == "2D"
 
         def createProfile2(currentData):
-            coords, profile, _area, profileName, xLabel = createProfile(
+            coords, profile, _area, profileName, xLabel = core.createProfile(
                 roiInfo=self._getRoiInfo(),
                 currentData=currentData,
                 origin=origin,
