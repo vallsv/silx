@@ -203,6 +203,7 @@ class Viewer(qt.QMainWindow):
         self.__collapseAllAction = action
 
         action = qt.QAction("&Sort file content", self)
+        action.setIcon(icons.getQIcon("tree-sort"))
         action.setToolTip("Toggle sorting of file content")
         action.setCheckable(True)
         action.setChecked(True)
