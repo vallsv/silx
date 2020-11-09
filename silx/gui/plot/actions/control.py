@@ -685,6 +685,11 @@ class OpenGlAction(PlotAction):
         plot = self.plot
         name = self._getBackendName(self.plot)
         if name is not "opengl":
+            from silx.gui.utils import glutils
+            result = glutils.isOpenGLAvailable()
+            if not result:
+                qt.QMessageBox.critical(plot, "OpenGL rendering not available", result.error)
+                return
             plot.setBackend("opengl")
         else:
             plot.setBackend("matplotlib")
