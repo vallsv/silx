@@ -29,7 +29,7 @@ __license__ = "MIT"
 __date__ = "18/02/2016"
 
 
-import numpy as np
+import numpy
 
 
 def prepareDrawingSignal(event, type_, points, parameters=None):
@@ -42,7 +42,7 @@ def prepareDrawingSignal(event, type_, points, parameters=None):
     eventDict = {}
     eventDict['event'] = event
     eventDict['type'] = type_
-    points = np.array(points, dtype=np.float32)
+    points = numpy.array(points, dtype=numpy.float32)
     points.shape = -1, 2
     eventDict['points'] = points
     eventDict['xdata'] = points[:, 0]
