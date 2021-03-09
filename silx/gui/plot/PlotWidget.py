@@ -75,7 +75,6 @@ from ._utils.panzoom import ViewConstraints
 from ...gui.plot._utils.dtime_ticklayout import timestamp
 
 
-
 _COLORDICT = colors.COLORDICT
 _COLORLIST = silx.config.DEFAULT_PLOT_CURVE_COLORS
 
@@ -245,22 +244,6 @@ class _PlotWidgetSelection(qt.QObject):
         """Handle active scatter change"""
         self.__activeItemChanged('scatter', previous, current)
 
-class _WidgetHandleEventFilter(qt.QObject):
-    """Dedicated class to handle eventFilter callbacks"""
-    def __init__(self, parent):
-        super(_WidgetHandleEventFilter, self).__init__(parent=parent)
-        self._plot = weakref.ref(parent)
-
-    def getPlotWidget(self):
-        return self._plot()
-
-    def eventFilter(self, widgetHandle, event):
-        if event.type() == qt.QEvent.Leave:
-            plot = self.getPlotWidget()
-            plot._emitMouseLeft()
-            return True
-        return False
-
 
 class PlotWidget(qt.QMainWindow):
     """Qt Widget providing a 1D/2D plot.
@@ -389,6 +372,9 @@ class PlotWidget(qt.QMainWindow):
     It provides the menu which will be displayed.
     """
 
+    sigMouseMove = qt.Signal(PlotEvents.MouseMoveEvent)
+    """Signal emitted when the mouse move over the plot widget"""
+
     sigMouseLeft = qt.Signal()
     """Signal emitted when the mouse move outside of the plot widget"""
 
@@ -408,12 +394,8 @@ class PlotWidget(qt.QMainWindow):
         else:
             self.setWindowTitle('PlotWidget')
 
-        self.__eventFilter = _WidgetHandleEventFilter(self)
-        """Handle events from the WidgetHandler"""
-
         # Init the backend
         self._backend = self.__getBackendClass(backend)(self, self)
-        self._backend.installEventFilter(self.__eventFilter)
 
         self.setCallback()  # set _callback
 
@@ -616,18 +598,12 @@ class PlotWidget(qt.QMainWindow):
         for item in self.getItems():
             item._removeBackendRenderer(self._backend)
 
-        if self._backend is not None:
-            self._backend.removeEventFilter(self.__eventFilter)
-
         # Switch backend
         self._backend = backend
         widget = self._backend.getWidgetHandle()
         self.setCentralWidget(widget)
         if widget is None:
             _logger.info("PlotWidget backend does not support widget")
-
-        if self._backend is not None:
-            self._backend.installEventFilter(self.__eventFilter)
 
         # Mark as newly dirty
         self._dirty = False
@@ -3480,6 +3456,7 @@ class PlotWidget(qt.QMainWindow):
         inXPixel, inYPixel = self._isPositionInPlotArea(xPixel, yPixel)
         isCursorInPlot = inXPixel == xPixel and inYPixel == yPixel
 
+        print("onMouseMove", self._cursorInPlot)
         if self._cursorInPlot != isCursorInPlot:
             self._cursorInPlot = isCursorInPlot
             self._eventHandler.handleEvent(
@@ -3494,6 +3471,7 @@ class PlotWidget(qt.QMainWindow):
             event = PlotEvents.prepareMouseSignal(
                 'mouseMoved', btn, dataPos[0], dataPos[1], xPixel, yPixel)
             self.notify(**event)
+            self.sigMouseMove.emit(PlotEvents.MouseMoveEvent(btn, dataPos, (xPixel, yPixel)))
 
         # Either button was pressed in the plot or cursor is in the plot
         if isCursorInPlot or self._pressedButtons:
@@ -3529,12 +3507,12 @@ class PlotWidget(qt.QMainWindow):
 
     def onMouseLeaveWidget(self):
         """Handle mouse leave widget event."""
+        print("onMouseLeaveWidget", self._cursorInPlot)
         if self._cursorInPlot:
             self._cursorInPlot = False
             self._eventHandler.handleEvent('leave')
-
-    def _emitMouseLeft(self):
-        self.sigMouseLeft.emit()
+            print("leave")
+            self.sigMouseLeft.emit()
 
     # Interaction modes #
 

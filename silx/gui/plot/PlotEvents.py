@@ -32,6 +32,27 @@ __date__ = "18/02/2016"
 import numpy
 
 
+class MouseMoveEvent():
+    """Hold data from a mouse move event"""
+
+    def __init__(self, button, dataPos, pixelPos):
+        self._dataPos = dataPos
+        self._pixelPos = pixelPos
+        self._button = button
+
+    def button(self):
+        """Button pressed when the mouse is moving"""
+        return self._button
+
+    def dataPos(self):
+        """Returns the position of the cursor in the data coordinate"""
+        return self._dataPos
+
+    def pos(self):
+        """Returns the position of the cursor in the widget coordinate"""
+        return self._pixelPos
+
+
 def prepareDrawingSignal(event, type_, points, parameters=None):
     """See Plot documentation for content of events"""
     assert event in ('drawingProgress', 'drawingFinished')

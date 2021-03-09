@@ -1345,6 +1345,7 @@ class BackendMatplotlibQt(FigureCanvasQTAgg, BackendMatplotlib):
         self.mpl_connect('button_release_event', self._onMouseRelease)
         self.mpl_connect('motion_notify_event', self._onMouseMove)
         self.mpl_connect('scroll_event', self._onMouseWheel)
+        #self.mpl_connect('figure_leave_event', self._onMouseLeave)
 
     def postRedisplay(self):
         self._sigPostRedisplay.emit()
@@ -1399,7 +1400,14 @@ class BackendMatplotlibQt(FigureCanvasQTAgg, BackendMatplotlib):
         self._plot.onMouseWheel(int(x), int(y), event.step)
 
     def leaveEvent(self, event):
-        """QWidget event handler"""
+        try:
+            plot = self._plot
+        except RuntimeError:
+            pass
+        else:
+            plot.onMouseLeaveWidget()
+
+    def _onMouseLeave(self, event):
         try:
             plot = self._plot
         except RuntimeError:
