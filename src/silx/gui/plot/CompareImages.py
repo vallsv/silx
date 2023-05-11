@@ -1105,7 +1105,8 @@ class CompareImages(qt.QMainWindow):
         :param VisualizationMode mode: Composition mode.
         :rtype: numpy.ndarray
         """
-        assert(data1.shape[0:2] == data2.shape[0:2])
+        if data1.shape[0:2] != data2.shape[0:2]:
+            raise ValueError(f"data1 and data2 are expected to get the same shapes. Get {data1.shape[0:2]} vs {data2.shape[0:2]}")
         if mode == VisualizationMode.COMPOSITE_A_MINUS_B:
             # TODO: this calculation has no interest of generating a 'composed'
             # rgb image, this could be moved in an other function or doc
