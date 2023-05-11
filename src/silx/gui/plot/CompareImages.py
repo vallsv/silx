@@ -553,6 +553,9 @@ class CompareImages(qt.QMainWindow):
     """Emitted when the configuration of the widget (visualization mode,
     alignement mode...) have changed."""
 
+    EMPTY_DATA = numpy.array([numpy.nan,]).reshape(1, 1)
+    EMPTY_DATA.flags.writeable = False
+
     def __init__(self, parent=None, backend=None):
         qt.QMainWindow.__init__(self, parent)
         self._resetZoomActive = True
@@ -630,6 +633,10 @@ class CompareImages(qt.QMainWindow):
         self._createStatusBar(self.__plot)
         if self._statusBar is not None:
             self.setStatusBar(self._statusBar)
+
+    @staticmethod
+    def data_is_empty(data):
+        return numpy.array_equal(data, CompareImages.EMPTY_DATA, equal_nan=True)
 
     def _createStatusBar(self, plot):
         self._statusBar = CompareImagesStatusBar(self)
@@ -932,11 +939,9 @@ class CompareImages(qt.QMainWindow):
         """
         raw1, raw2 = self.__raw1, self.__raw2
         if raw1 is None:
-            raw1 = numpy.empty((1, 1))
-            raw1[0, 0] = numpy.nan
+            raw1 = self.EMPTY_DATA
         if raw2 is None:
-            raw2 = numpy.empty((1, 1))
-            raw2[0, 0] = numpy.nan
+            raw2 = self.EMPTY_DATA
 
         alignmentMode = self.getAlignmentMode()
         self.__transformation = None
@@ -1022,24 +1027,35 @@ class CompareImages(qt.QMainWindow):
         if mode1 == "intensity" and mode1 == mode2:
             def merge_min_max(data1, data2):
                 if data1.size == 0:
-                    data1 = numpy.empty((1, 1))
-                    data1[0, 0] = numpy.nan
+                    data1 = self.EMPTY_DATA
                 if data2.size == 0:
-                    data2 = numpy.empty((1, 1))
-                    data2[0, 0] = numpy.nan
-                range1 = min_max(data1, finite=True)
-                range2 = min_max(data2, finite=True)
+                    data2 = self.EMPTY_DATA
+                if self.data_is_empty(data1):
+                    range1 = None
+                else:
+                    range1 = min_max(data1, finite=True)
+                if self.data_is_empty(data2):
+                    range2 = None
+                else:
+                    range2 = min_max(data2, finite=True)
                 def vreduce(vmin, vmax, func):
                     if vmin is None:
                         return vmax
                     if vmax is None:
                         return vmin
                     return func(vmin, vmax)
-                vmin = vreduce(range1.minimum, range2.minimum, min)
-                vmax = vreduce(range1.maximum, range2.maximum, max)
-                if vmin is None or vmax is None:
+                if range1 is None and range2 is None:
                     return 0, 1
-                return vmin, vmax
+                elif range1 is None:
+                    return range2.minimum, range2.maximum
+                elif range2 is None:
+                    return range1.minimum, range1.maximum
+                else:
+                    vmin = vreduce(range1.minimum, range2.minimum, min)
+                    vmax = vreduce(range1.maximum, range2.maximum, max)
+                    if vmin is None or vmax is None:
+                        return 0, 1
+                    return vmin, vmax
             vmin, vmax = merge_min_max(self.__data1, self.__data2)
             colormap = self.getColormap()
             colormap.setVRange(vmin=vmin, vmax=vmax)
