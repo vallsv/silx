@@ -687,6 +687,11 @@ class CompareImages(qt.QMainWindow):
         data2 = None
         alignmentMode = self.__alignmentMode
         raw1, raw2 = self.__raw1, self.__raw2
+        if raw1 is None:
+            raw1 = self.EMPTY_DATA
+        if raw2 is None:
+            raw2 = self.EMPTY_DATA
+
         if alignmentMode == AlignmentMode.ORIGIN:
             x1 = x
             y1 = y
@@ -946,7 +951,12 @@ class CompareImages(qt.QMainWindow):
         alignmentMode = self.getAlignmentMode()
         self.__transformation = None
 
-        if alignmentMode == AlignmentMode.ORIGIN:
+        if self.data_is_empty(raw1) or self.data_is_empty(raw2):
+            # if gets at least one of the two image empty
+            data1 = raw1
+            data2 = raw2
+            self.__matching_keypoints = [0.0], [0.0], [1.0]
+        elif alignmentMode == AlignmentMode.ORIGIN:
             yy = max(raw1.shape[0], raw2.shape[0])
             xx = max(raw1.shape[1], raw2.shape[1])
             size = yy, xx
@@ -989,13 +999,14 @@ class CompareImages(qt.QMainWindow):
             assert(False)
 
         mode = self.getVisualizationMode()
-        if mode == VisualizationMode.COMPOSITE_RED_BLUE_GRAY_NEG:
+        data1_and_data_2_defined = self.data_is_empty(data1) and self.data_is_empty(data2)
+        if mode == VisualizationMode.COMPOSITE_RED_BLUE_GRAY_NEG and data1_and_data_2_defined:
             data1 = self.__composeImage(data1, data2, mode)
             data2 = numpy.empty((0, 0))
-        elif mode == VisualizationMode.COMPOSITE_RED_BLUE_GRAY:
+        elif mode == VisualizationMode.COMPOSITE_RED_BLUE_GRAY and data1_and_data_2_defined:
             data1 = self.__composeImage(data1, data2, mode)
             data2 = numpy.empty((0, 0))
-        elif mode == VisualizationMode.COMPOSITE_A_MINUS_B:
+        elif mode == VisualizationMode.COMPOSITE_A_MINUS_B and data1_and_data_2_defined:
             data1 = self.__composeImage(data1, data2, mode)
             data2 = numpy.empty((0, 0))
         elif mode == VisualizationMode.ONLY_A:
