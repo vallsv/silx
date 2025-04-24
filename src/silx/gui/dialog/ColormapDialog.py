@@ -229,6 +229,44 @@ class _BoundaryWidget(qt.QWidget):
         self._autoToggleAction.setIcon(icon)
 
 
+class _AutoscaleModeButton2(qt.QPushButton):
+    DATA = {
+        Colormap.MINMAX: (
+            "Min/max",
+            "Use the data min/max",
+        ),
+        Colormap.STDDEV3: (
+            "Mean\n±3std",
+            "Use the data mean ± 3 × standard deviation",
+        ),
+        Colormap.PERCENTILE: (
+            "Percentile",
+            "Use n'st to m'th percentile of data",
+        ),
+    }
+
+    def __init__(self, parent: qt.QWidget):
+        super().__init__(parent=parent)
+        self._colormapMode = None
+        self._currentColormapMode = None
+        self.setCheckable(True)
+
+    def setSelectedColormapMode(self, colormapMode):
+        self._colormapMode = colormapMode
+        name, tooltip = self.DATA.get(self._colormapMode, ("", ""))
+        self.setText(name)
+        self.setToolTip(tooltip)
+        self._update()
+
+    def _update(self):
+        selected = self._colormapMode == self._currentColormapMode
+        self.setChecked(selected)
+
+    def setColormapMode(self, colormapMode):
+        self._currentColormapMode = colormapMode
+        self._update()
+
+
 class _AutoscaleModeComboBox(qt.QComboBox):
     DATA = {
         Colormap.MINMAX: ("Min/max", "Use the data min/max"),
@@ -955,6 +993,18 @@ class ColormapDialog(qt.QDialog):
         self._gammaSpinBox.valueChanged.connect(self._gammaUpdated)
         self._gammaSpinBox.setValue(2.0)
 
+        self._autoMin = _AutoscaleModeButton2(self)
+        self._autoMin.setSelectedColormapMode(Colormap.MINMAX)
+        self._autoMin.clicked.connect(self._modeClicked)
+
+        self._autoStd = _AutoscaleModeButton2(self)
+        self._autoStd.setSelectedColormapMode(Colormap.STDDEV3)
+        self._autoStd.clicked.connect(self._modeClicked)
+
+        self._autoPer = _AutoscaleModeButton2(self)
+        self._autoPer.setSelectedColormapMode(Colormap.PERCENTILE)
+        self._autoPer.clicked.connect(self._modeClicked)
+
         autoScaleCombo = _AutoscaleModeComboBox(self)
         autoScaleCombo.currentIndexChanged.connect(self._autoscaleModeUpdated)
         self._autoScaleCombo = autoScaleCombo
@@ -1073,7 +1123,12 @@ class ColormapDialog(qt.QDialog):
         layoutScale = qt.QGridLayout()
         layoutScale.setContentsMargins(0, 0, 0, 0)
         layoutScale.addWidget(self._autoButtons, 0, 0, 1, 1)
-        layoutScale.addWidget(self._autoScaleCombo, 0, 1, 1, 1)
+
+        layoutScale.addWidget(self._autoMin, 0, 1, 1, 1)
+        layoutScale.addWidget(self._autoStd, 0, 2, 1, 1)
+        layoutScale.addWidget(self._autoPer, 0, 3, 1, 1)
+
+        # layoutScale.addWidget(self._autoScaleCombo, 0, 1, 1, 1)
         layoutScale.addItem(
             qt.QSpacerItem(0, 0, qt.QSizePolicy.Fixed, qt.QSizePolicy.Fixed), 0, 2, 1, 1
         )
@@ -1116,6 +1171,28 @@ class ColormapDialog(qt.QDialog):
 
         self._updateSaturationVisibility()
         self._applyColormap()
+
+    def _modeClicked(self):
+        button = self.sender()
+        mode = button._colormapMode
+
+        self._autoMin.setColormapMode(mode)
+        self._autoStd.setColormapMode(mode)
+        self._autoPer.setColormapMode(mode)
+
+        colormap = self.getColormap()
+        if colormap is not None:
+            enable_saturation = mode == Colormap.PERCENTILE
+            with self._colormapChange:
+                if enable_saturation:
+                    colormap.setSaturationAutoscaleParameter(
+                        self._saturationSlider.value()
+                    )
+                else:
+                    colormap.setSaturationAutoscaleParameter(
+                        Colormap._DEFAULT_SATURATION
+                    )
+                colormap.setAutoscaleMode(mode)
 
     def getHistogramWidget(self):
         return self._histoWidget
