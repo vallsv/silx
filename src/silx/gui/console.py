@@ -98,12 +98,15 @@ except ImportError:
             RichIPythonWidget as _RichJupyterWidget,
         )
 
-from qtconsole.inprocess import QtInProcessKernelManager
-
 try:
-    from ipykernel import version_info as _ipykernel_version_info
-except ImportError:
+    from qtconsole.inprocess import QtInProcessKernelManager
+except (ImportError, DeprecationWarning):
     _ipykernel_version_info = None
+else:
+    try:
+        from ipykernel import version_info as _ipykernel_version_info
+    except ImportError:
+        _ipykernel_version_info = None
 
 
 class IPythonWidget(_RichJupyterWidget):
